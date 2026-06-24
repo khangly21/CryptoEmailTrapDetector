@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRYPTOGUARD • Email Scam Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080B14;
+            --surface: #0D1420;
+            --green: #00FF88;
+            --red: #FF2D55;
+            --gold: #FFB800;
+            --white: #E8F0F7;
+        }
+        body {
+            background: var(--bg);
+            color: var(--white);
+            font-family: 'Inter', system_ui, sans-serif;
+        }
+        .mono {
+            font-family: 'Space Mono', 'Courier New', Consolas, monospace;
+        }
+        .cyber-bg {
+            background: linear-gradient(180deg, #080B14 0%, #0a0f1c 100%);
+        }
+        .terminal {
+            background: #0D1420;
+            border: 1px solid #00FF88;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
+            color: #00FF88;
+            padding: 16px;
+            height: 340px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .terminal-line {
+            margin-bottom: 4px;
+            opacity: 0.95;
+        }
+        .terminal-line.info { color: #00FF88; }
+        .terminal-line.threat { color: #FF2D55; font-weight: 600; }
+        .terminal-line.warn { color: #FFB800; }
+        .terminal-line.safe { color: #00FF88; }
+        .terminal-line.system { color: #E8F0F7; font-style: italic; }
+        .diff-char {
+            color: #FF2D55;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            font-weight: 700;
+        }
+        .section-title {
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 1px;
+            color: #00FF88;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+        }
+        .threat-badge {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .crypto-chip {
+            background: #0D1420;
+            border: 1px solid #00FF88;
+            color: #00FF88;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .crypto-chip:hover {
+            background: #00FF88;
+            color: #080B14;
+            transform: translateY(-1px);
+        }
+        .crypto-chip:active {
+            transform: scale(0.98);
+        }
+        .whitelist-chip {
+            background: #0D1420;
+            border: 1px solid #00FF88;
+            color: #00FF88;
+            font-size: 0.8rem;
+            padding: 3px 9px;
+            border-radius: 3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 3px;
+        }
+        .whitelist-chip .remove {
+            cursor: pointer;
+            color: #FF2D55;
+            font-weight: bold;
+            padding-left: 4px;
+        }
+        .findings-card {
+            background: #0D1420;
+            border: 1px solid #2a3548;
+        }
+        .neon-green {
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+        }
+        .scanlines {
+            position: relative;
+        }
+        .scanlines::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                transparent,
+                transparent 3px,
+                rgba(0,255,136,0.04) 3px,
+                rgba(0,255,136,0.04) 4px
+            );
+            pointer-events: none;
+            border-radius: 6px;
+        }
+        .nav-brand {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        .metric {
+            font-family: 'Space Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV -->
+    <nav class="navbar navbar-dark border-bottom border-secondary py-2" style="background:#080B14">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center me-3">
+                    <i class="bi bi-shield-fill-check fs-2 text-success me-2"></i>
+                    <div>
+                        <span class="nav-brand fs-4 text-success">CRYPTOGUARD</span>
+                        <span class="badge bg-dark text-success ms-2" style="font-size:0.65rem; border:1px solid #00FF88">v1.0 PURE JS</span>
+                    </div>
+                </div>
+                <span class="text-muted small d-none d-md-inline">Email Scam Detector • No API • Client-only</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark text-warning border border-warning" style="font-size:0.7rem">VIETNAMESE CRYPTO USERS</span>
+                <button class="btn btn-sm btn-outline-light" onclick="showHowItWorks()">
+                    <i class="bi bi-question-circle me-1"></i> HOW IT WORKS
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 cyber-bg">
+        <!-- HERO / TAGLINE -->
+        <div class="text-center mb-4">
+            <h1 class="display-6 fw-bold mono neon-green mb-1">PASTE EMAIL → INSTANT THREAT ANALYSIS</h1>
+            <p class="text-muted mb-0">Detect fake "Customer Support", seed phrase traps, URL spoofs &amp; social engineering in crypto emails.<br>
+            <span class="text-success">100% private • Pure JavaScript • Levenshtein + character-level diff</span></p>
+        </div>
+
+        <!-- SAMPLE CHIPS -->
+        <div class="mb-3">
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <button onclick="loadSample('binancePhish')" class="crypto-chip">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Binance Phishing
+                </button>
+                <button onclick="loadSample('fakeSupport')" class="crypto-chip">
+                    <i class="bi bi-person-badge me-1"></i> Fake Support
+                </button>
+                <button onclick="loadSample('cryptoPrize')" class="crypto-chip">
+                    <i class="bi bi-trophy-fill me-1"></i> Crypto Prize Scam
+                </button>
+                <button onclick="loadSample('seedAttack')" class="crypto-chip">
+                    <i class="bi bi-key-fill me-1"></i> Seed Phrase Attack
+                </button>
+                <button onclick="loadSample('legitEmail')" class="crypto-chip" style="border-color:#00FF88; color:#00FF88">
+                    <i class="bi bi-check-circle-fill me-1"></i> Legit Email
+                </button>
+            </div>
+            <div class="text-center mt-1">
+                <small class="text-muted">Click sample → auto-fill → SCAN to compare results</small>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- INPUT PANEL -->
+            <div class="col-lg-5">
+                <div class="card border-secondary findings-card h-100">
+                    <div class="card-header bg-dark border-secondary d-flex align-items-center py-2">
+                        <i class="bi bi-envelope-fill text-success me-2"></i>
+                        <span class="section-title">INPUT — Paste Email</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="form-label small text-muted">From (optional — auto-extracted if present)</label>
+                            <input type="text" id="fromInput" class="form-control form-control-sm bg-dark text-white border-secondary mono" placeholder="support@binance-secure.net">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Email content (Subject + Body)</label>
+                            <textarea id="emailInput" class="form-control bg-dark text-white border-secondary mono" rows="11" 
+                                placeholder="Paste the full suspicious email here...&#10;From: ...&#10;Subject: Your account has been suspended&#10;&#10;Dear user, click here to verify..."></textarea>
+                        </div>
+                        <button onclick="scanEmail()" class="btn btn-success btn-lg w-100 fw-bold mono">
+                            <i class="bi bi-shield-fill-check me-2"></i> SCAN FOR THREATS
+                        </button>
+                        <div class="d-flex justify-content-between mt-2">
+                            <button onclick="clearAll()" class="btn btn-sm btn-outline-secondary">Clear All</button>
+                            <button onclick="copyReport()" class="btn btn-sm btn-outline-success">Copy Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TERMINAL + FINDINGS -->
+            <div class="col-lg-7">
+                <div class="card border-secondary findings-card mb-3">
+                    <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center py-2">
+                        <div>
+                            <i class="bi bi-terminal-fill text-success me-2"></i>
+                            <span class="section-title">LIVE TERMINAL — Threat Scanner</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="scanStatus" class="badge bg-dark text-muted border border-secondary small">READY</span>
+                            <button onclick="clearTerminal()" class="btn btn-sm btn-outline-secondary py-0 px-2">Clear</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="terminal" class="terminal scanlines"></div>
+                    </div>
+                </div>
+
+                <!-- FORENSIC FINDINGS -->
+                <div class="card border-secondary findings-card">
+                    <div class="card-header bg-dark border-secondary py-2">
+                        <i class="bi bi-search text-warning me-2"></i>
+                        <span class="section-title">FORENSIC FINDINGS — Detailed Analysis</span>
+                    </div>
+                    <div class="card-body" id="findings">
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-shield-slash fs-1 opacity-50"></i>
+                            <p class="mb-0 mt-2 small">Scan results will appear here.<br>Terminal shows step-by-step. Findings panel shows structured verdict + URL diff.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WHITELIST MANAGER -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-secondary findings-card">
+                    <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center py-2">
+                        <div>
+                            <i class="bi bi-list-check text-success me-2"></i>
+                            <span class="section-title">OFFICIAL DOMAIN WHITELIST (35+ trusted)</span>
+                            <span id="whitelistCount" class="badge bg-success text-dark ms-2">42</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" id="whitelistSearch" class="form-control form-control-sm bg-dark text-white border-secondary mono" style="width:180px" placeholder="Search domains..." onkeyup="filterWhitelist()">
+                            <button onclick="addCustomDomain()" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-plus-lg"></i> ADD CUSTOM
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body pt-3 pb-2">
+                        <div id="whitelistChips" class="d-flex flex-wrap"></div>
+                        <div class="mt-2 small text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Exact match = safe. High similarity + not exact = potential spoof (Levenshtein). Add your own trusted domains (e.g. your exchange).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-3 border-top border-secondary small text-muted">
+        CRYPTOGUARD v1.0 • Pure JavaScript • No data leaves your browser • Built for Vietnamese crypto community to fight fake support scams
+    </footer>
+
+    <script>
+        // ==================== DATA ====================
+        const DEFAULT_WHITELIST = [
+            "binance.com", "binance.us", "coinbase.com", "metamask.io", "ledger.com", "ledger.live",
+            "trezor.io", "uniswap.org", "aave.com", "compound.finance", "curve.fi", "makerdao.com",
+            "pancakeswap.finance", "trustwallet.com", "exodus.io", "electrum.org", "kraken.com",
+            "kucoin.com", "bybit.com", "okx.com", "gate.io", "huobi.com", "htx.com", "crypto.com",
+            "gemini.com", "bitfinex.com", "etherscan.io", "bscscan.com", "polygonscan.com",
+            "arbiscan.io", "optimistic.etherscan.io", "coinmarketcap.com", "coingecko.com",
+            "remitano.com", "pi.network", "okx.com", "bitget.com", "mexc.com", "bingx.com",
+            "support.binance.com", "accounts.binance.com", "wallet.coinbase.com"
+        ];
+
+        let whitelist = [...DEFAULT_WHITELIST];
+
+        const SAMPLES = {
+            binancePhish: `From: support@binance-secure.net
+Subject: Your Binance account has been temporarily suspended — Action required within 24 hours
+
+Dear Valued User,
+
+We have detected suspicious activity on your account. To prevent permanent freeze, please verify your identity immediately by clicking the secure link below and entering your 12-word recovery phrase for security confirmation.
+
+[VERIFY ACCOUNT NOW] https://binance-secure.net/claim-reward
+
+This link will expire in 24 hours. Do not share with anyone.
+
+Binance Security Team`,
+
+            fakeSupport: `From: binance-support@secure-binance.net
+Subject: Important: Your account security alert
+
+Hello,
+
+Our security team has flagged unusual login attempts from Vietnam. Please connect with our official support agent on Telegram @BinanceSecurityHelp to resolve this within the next few hours or your assets may be at risk.
+
+Do not ignore this message.
+
+Best regards,
+Binance Customer Support`,
+
+            cryptoPrize: `From: rewards@crypto-giveaway.top
+Subject: 🎉 CONGRATULATIONS! You have won 0.5 BTC
+
+Dear winner,
+
+You have been randomly selected in our exclusive Binance X giveaway. Claim your 0.5 BTC reward instantly by clicking the button below and connecting your wallet.
+
+Claim here: https://crypto-giveaway.top/claim/0.5btc
+
+Limited to first 500 users only. Act fast!
+
+Crypto Rewards Team`,
+
+            seedAttack: `From: security@wallet-recovery.net
+Subject: URGENT: Unauthorized transaction detected on your wallet
+
+We detected a suspicious outgoing transaction from your MetaMask wallet. To freeze and recover your funds, you must immediately enter your seed phrase on our secure recovery portal.
+
+Recovery link: https://wallet-recovery.net/restore
+
+Enter your 12-word phrase to verify ownership. This is the only way to stop the hacker.
+
+Ledger Security`,
+
+            legitEmail: `From: noreply@binance.com
+Subject: Your monthly statement is ready
+
+Hi there,
+
+Your Binance monthly account statement for May 2026 is now available in your account dashboard.
+
+You can view it here: https://www.binance.com/en/my/dashboard
+
+No action is required from your side. This is an automated message.
+
+Thank you for using Binance.
+Binance Team`
+        };
+
+        const URGENCY_PATTERNS = [
+            /\b(suspended|locked|frozen|blocked|restricted|deactivated)\b/i,
+            /\b(within|in)\s*(24|48|12)\s*(hours?|hrs?|minutes?)\b/i,
+            /\b(immediately|urgent|asap|right now|do not ignore)\b/i,
+            /\b(permanently|forever)\s*(frozen|disabled|closed|lost)\b/i,
+            /\b(action required|verify now|confirm immediately|last chance)\b/i,
+            /\b(account will be closed|deactivated|disabled soon)\b/i,
+            /\b(limited time|expires (soon|in|within))\b/i,
+            /\b(security alert|unusual activity|unauthorized login)\b/i
+        ];
+
+        const SENSITIVE_PATTERNS = [
+            /seed phrase|recovery phrase|12 word|24 word|mnemonic/i,
+            /private key|secret key|backup phrase/i,
+            /2FA code|two.factor|authenticator code|google auth code/i,
+            /enter your password|confirm your password|login password/i,
+            /connect.*wallet.*(seed|phrase|private)/i,
+            /verify.*(seed|phrase|key)/i
+        ];
+
+        const SOCIAL_PATTERNS = [
+            /binance security team|official support|customer service.*telegram/i,
+            /congratulations.*(won|selected|winner)|you have won/i,
+            /prize|giveaway|airdrop.*exclusive|claim your reward/i,
+            /contact.*support.*telegram|@binance.*support/i,
+            /fake.*support|scam.*warning/i
+        ];
+
+        const CRYPTO_PATTERNS = [
+            /\b(btc|eth|bnb|usdt|crypto|defi|staking|yield|liquidity|wallet balance)\b/i,
+            /\b(unauthorized transaction|suspicious activity on your wallet)\b/i,
+            /\b(claim.*btc|claim.*eth|reward.*crypto)\b/i
+        ];
+
+        // ==================== LEVENSHTEIN ====================
+        function levenshtein(s, t) {
+            if (s === t) return 0;
+            if (s.length === 0) return t.length;
+            if (t.length === 0) return s.length;
+
+            const v0 = Array.from({length: t.length + 1}, (_, i) => i);
+            let v1 = Array(t.length + 1);
+
+            for (let i = 0; i < s.length; i++) {
+                v1[0] = i + 1;
+                for (let j = 0; j < t.length; j++) {
+                    const cost = s[i] === t[j] ? 0 : 1;
+                    v1[j + 1] = Math.min(
+                        v1[j] + 1,
+                        v0[j + 1] + 1,
+                        v0[j] + cost
+                    );
+                }
+                for (let j = 0; j < v0.length; j++) v0[j] = v1[j];
+            }
+            return v1[t.length];
+        }
+
+        function findClosestWhitelist(domain) {
+            if (!domain) return { closest: '', distance: Infinity, similarity: 0 };
+            let minDist = Infinity;
+            let closest = '';
+            const d = domain.toLowerCase().trim();
+
+            for (let official of whitelist) {
+                const dist = levenshtein(d, official);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = official;
+                }
+            }
+            const maxLen = Math.max(d.length, closest.length);
+            const similarity = maxLen === 0 ? 0 : 1 - (minDist / maxLen);
+            return { closest, distance: minDist, similarity };
+        }
+
+        function extractDomain(url) {
+            try {
+                return new URL(url).hostname.toLowerCase();
+            } catch {
+                const match = url.match(/https?:\/\/([^/?#]+)/i);
+                return match ? match[1].toLowerCase() : null;
+            }
+        }
+
+        function extractURLs(text) {
+            const regex = /https?:\/\/[^\s"'<>]+/gi;
+            return [...text.matchAll(regex)].map(m => m[0]);
+        }
+
+        function getDiffHtml(fake, real) {
+            if (!fake || !real) return fake || '';
+            let html = '';
+            const max = Math.max(fake.length, real.length);
+            for (let i = 0; i < max; i++) {
+                const fChar = fake[i] || '';
+                const rChar = real[i] || '';
+                if (fChar === rChar) {
+                    html += `<span>${fChar}</span>`;
+                } else {
+                    html += `<span class="diff-char">${fChar || ' '}</span>`;
+                }
+            }
+            return html;
+        }
+
+        // ==================== DETECTION ====================
+        function detectUrgency(text) {
+            return URGENCY_PATTERNS.some(p => p.test(text));
+        }
+
+        function detectSensitive(text) {
+            return SENSITIVE_PATTERNS.some(p => p.test(text));
+        }
+
+        function detectSocial(text) {
+            return SOCIAL_PATTERNS.some(p => p.test(text));
+        }
+
+        function detectCryptoTarget(text) {
+            return CRYPTO_PATTERNS.some(p => p.test(text));
+        }
+
+        function analyzeDomain(domain) {
+            if (!domain) return { isSuspicious: false, closest: '', similarity: 1, distance: 0 };
+            const exact = whitelist.some(w => w === domain);
+            if (exact) return { isSuspicious: false, closest: domain, similarity: 1, distance: 0 };
+            
+            const res = findClosestWhitelist(domain);
+            const isSuspicious = res.similarity > 0.55 && res.similarity < 0.98;
+            return { isSuspicious, ...res };
+        }
+
+        // ==================== TERMINAL TYPING ====================
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function typeLine(text, type = 'info') {
+            const terminal = document.getElementById('terminal');
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            terminal.appendChild(line);
+            
+            for (let i = 0; i < text.length; i++) {
+                line.textContent += text[i];
+                terminal.scrollTop = terminal.scrollHeight;
+                await sleep(12); // fast but visible typing
+            }
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal').innerHTML = '';
+        }
+
+        // ==================== MAIN SCAN ====================
+        async function scanEmail() {
+            const terminal = document.getElementById('terminal');
+            const findings = document.getElementById('findings');
+            const status = document.getElementById('scanStatus');
+            
+            const emailText = document.getElementById('emailInput').value.trim();
+            let fromDomain = document.getElementById('fromInput').value.trim();
+            
+            if (!emailText) {
+                alert('Please paste an email or load a sample first!');
+                return;
+            }
+
+            // Auto extract From domain if not provided
+            if (!fromDomain) {
+                const fromMatch = emailText.match(/From:?\s*.*@([a-zA-Z0-9.-]+\.[a-z]{2,})/i);
+                if (fromMatch) fromDomain = fromMatch[1];
+            }
+
+            // RESET UI
+            terminal.innerHTML = '';
+            findings.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-success"></div> <span class="ms-2">Analyzing...</span></div>';
+            status.textContent = 'SCANNING';
+            status.className = 'badge bg-warning text-dark border border-warning small';
+
+            // START ANALYSIS
+            await typeLine('[BOOT] CryptoGuard v1.0 threat scanner initialized', 'system');
+            await typeLine('[INFO] Parsing email content and extracting signals...', 'info');
+            await sleep(80);
+
+            let score = 0;
+            let flags = [];
+            let suspiciousUrls = [];
+            let senderAnalysis = null;
+
+            // 1. SENDER VERIFICATION
+            if (fromDomain) {
+                await typeLine(`[INFO] Sender domain extracted: ${fromDomain}`, 'info');
+                const analysis = analyzeDomain(fromDomain);
+                senderAnalysis = analysis;
+                
+                if (analysis.isSuspicious) {
+                    score += 28;
+                    flags.push('Sender domain spoofing');
+                    await typeLine(`[THREAT] Sender domain spoofing detected!`, 'threat');
+                    await typeLine(`[THREAT] Closest official match: ${analysis.closest} | Similarity: ${(analysis.similarity * 100).toFixed(1)}% | Distance: ${analysis.distance}`, 'threat');
+                } else if (analysis.similarity > 0.97) {
+                    await typeLine(`[SAFE] Sender domain matches whitelist (exact or near-exact).`, 'safe');
+                } else {
+                    await typeLine(`[WARN] Sender domain not in whitelist and low similarity.`, 'warn');
+                    score += 12;
+                }
+            } else {
+                await typeLine('[WARN] No From: domain found in text. Manual review recommended.', 'warn');
+            }
+
+            // 2. URL ANALYSIS
+            await typeLine('[INFO] Extracting all hyperlinks from email body...', 'info');
+            const urls = extractURLs(emailText);
+            const uniqueDomains = [...new Set(urls.map(u => extractDomain(u)).filter(Boolean))];
+            
+            if (uniqueDomains.length > 0) {
+                await typeLine(`[INFO] Found ${uniqueDomains.length} unique domain(s) in links. Running fuzzy analysis...`, 'info');
+                
+                for (let dom of uniqueDomains) {
+                    const analysis = analyzeDomain(dom);
+                    if (analysis.isSuspicious) {
+                        suspiciousUrls.push({ url: urls.find(u => extractDomain(u) === dom), domain: dom, ...analysis });
+                        score += 22;
+                        flags.push(`URL spoof: ${dom}`);
+                        await typeLine(`[THREAT] Suspicious link domain: ${dom}`, 'threat');
+                    } else {
+                        await typeLine(`[SAFE] Link domain OK: ${dom}`, 'safe');
+                    }
+                }
+            } else {
+                await typeLine('[INFO] No hyperlinks detected in email.', 'info');
+            }
+
+            // 3. URGENCY
+            const hasUrgency = detectUrgency(emailText);
+            if (hasUrgency) {
+                score += 15;
+                flags.push('Urgency / pressure tactics');
+                await typeLine('[THREAT] Urgency / time-pressure language detected (classic social engineering).', 'threat');
+            } else {
+                await typeLine('[INFO] No strong urgency patterns found.', 'info');
+            }
+
+            // 4. SENSITIVE DATA
+            const hasSensitive = detectSensitive(emailText);
+            if (hasSensitive) {
+                score += 45; // very high weight
+                flags.push('Sensitive data request (seed/2FA/key)');
+                await typeLine('[THREAT] CRITICAL: Request for seed phrase, private key or 2FA detected!', 'threat');
+                await typeLine('[THREAT] This is almost always a scam. NEVER share recovery phrases.', 'threat');
+            } else {
+                await typeLine('[INFO] No sensitive credential requests detected.', 'info');
+            }
+
+            // 5. SOCIAL ENGINEERING
+            const hasSocial = detectSocial(emailText);
+            if (hasSocial) {
+                score += 18;
+                flags.push('Social engineering / fake support');
+                await typeLine('[THREAT] Social engineering patterns: fake support team or prize language.', 'threat');
+            }
+
+            // 6. CRYPTO TARGETING
+            const hasCrypto = detectCryptoTarget(emailText);
+            if (hasCrypto) {
+                score += 12;
+                flags.push('Crypto-specific targeting');
+                await typeLine('[INFO] Email specifically targets crypto assets/wallets.', 'warn');
+            }
+
+            // FINAL SCORE
+            score = Math.min(100, Math.max(0, score));
+            let level = 'LOW';
+            let levelClass = 'success';
+            let verdict = 'Looks clean. Still verify sender manually.';
+
+            if (score >= 75) {
+                level = 'CRITICAL';
+                levelClass = 'danger';
+                verdict = 'This email is faker than a fake Rolex in Bến Thành market. DO NOT CLICK ANYTHING.';
+            } else if (score >= 50) {
+                level = 'HIGH';
+                levelClass = 'danger';
+                verdict = 'High probability of scam. Avoid all links and requests.';
+            } else if (score >= 25) {
+                level = 'MEDIUM';
+                levelClass = 'warning';
+                verdict = 'Suspicious signals present. Proceed with extreme caution.';
+            } else {
+                verdict = 'No major red flags detected by algorithm. Still double-check the From address.';
+            }
+
+            await typeLine(`[RESULT] Threat Score: ${score}/100 → ${level}`, levelClass === 'danger' ? 'threat' : (levelClass === 'warning' ? 'warn' : 'safe'));
+            await typeLine(`[VERDICT] ${verdict}`, levelClass === 'danger' ? 'threat' : 'safe');
+
+            status.textContent = level;
+            status.className = `badge bg-${levelClass} text-dark border border-${levelClass} small`;
+
+            // RENDER FINDINGS
+            renderFindings(score, level, levelClass, flags, suspiciousUrls, senderAnalysis, verdict, hasSensitive);
+        }
+
+        function renderFindings(score, level, levelClass, flags, suspiciousUrls, senderAnalysis, verdict, hasSensitive) {
+            const container = document.getElementById('findings');
+            container.innerHTML = '';
+
+            // Threat meter
+            const meterDiv = document.createElement('div');
+            meterDiv.className = 'mb-3';
+            meterDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-end mb-1">
+                    <div>
+                        <span class="text-muted small">THREAT LEVEL</span><br>
+                        <span class="threat-badge fs-3 fw-bold text-${levelClass}">${level}</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="metric text-${levelClass}">${score}</span>
+                        <span class="text-muted">/100</span>
+                    </div>
+                </div>
+                <div class="progress" style="height:8px; background:#1a2333">
+                    <div class="progress-bar bg-${levelClass}" style="width: ${score}%"></div>
+                </div>
+            `;
+            container.appendChild(meterDiv);
+
+            // Verdict
+            const verdictDiv = document.createElement('div');
+            verdictDiv.className = `alert alert-${levelClass} py-2 mb-3 mono small`;
+            verdictDiv.innerHTML = `<strong>VERDICT:</strong> ${verdict}`;
+            container.appendChild(verdictDiv);
+
+            // Flags
+            if (flags.length > 0) {
+                const flagsDiv = document.createElement('div');
+                flagsDiv.className = 'mb-3';
+                flagsDiv.innerHTML = `<div class="text-muted small mb-1">TRIGGERED LAYERS</div>`;
+                const pills = document.createElement('div');
+                pills.className = 'd-flex flex-wrap gap-1';
+                flags.forEach(f => {
+                    const pill = document.createElement('span');
+                    pill.className = 'badge bg-danger text-white';
+                    pill.textContent = f;
+                    pills.appendChild(pill);
+                });
+                flagsDiv.appendChild(pills);
+                container.appendChild(flagsDiv);
+            }
+
+            // URL Diff section
+            if (suspiciousUrls.length > 0) {
+                const urlSection = document.createElement('div');
+                urlSection.className = 'mb-2';
+                urlSection.innerHTML = `<div class="text-muted small mb-2"><i class="bi bi-link-45deg"></i> URL SPOOFING — CHARACTER LEVEL DIFF</div>`;
+                
+                suspiciousUrls.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'border border-danger rounded p-2 mb-2 bg-dark';
+                    row.innerHTML = `
+                        <div class="row g-2 align-items-center small">
+                            <div class="col-md-5">
+                                <div class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> OFFICIAL</div>
+                                <div class="mono text-success">${item.closest}</div>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> DETECTED IN EMAIL</div>
+                                <div class="mono">${getDiffHtml(item.domain, item.closest)}</div>
+                                <div class="text-muted" style="font-size:0.7rem">Similarity: ${(item.similarity*100).toFixed(1)}% | Levenshtein: ${item.distance}</div>
+                            </div>
+                        </div>
+                    `;
+                    urlSection.appendChild(row);
+                });
+                container.appendChild(urlSection);
+            }
+
+            // Sensitive warning
+            if (hasSensitive) {
+                const sens = document.createElement('div');
+                sens.className = 'alert alert-danger py-2 small mb-0';
+                sens.innerHTML = `<strong>🚨 NEVER SHARE SEED PHRASE OR PRIVATE KEY.</strong> This is the #1 rule in crypto. Legitimate support will NEVER ask for it.`;
+                container.appendChild(sens);
+            }
+        }
+
+        // ==================== WHITELIST ====================
+        function saveWhitelist() {
+            localStorage.setItem('cryptoguard_whitelist', JSON.stringify(whitelist));
+        }
+
+        function loadWhitelist() {
+            const saved = localStorage.getItem('cryptoguard_whitelist');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 5) {
+                        whitelist = parsed;
+                    }
+                } catch (e) {}
+            }
+            renderWhitelistChips();
+        }
+
+        function renderWhitelistChips(filter = '') {
+            const container = document.getElementById('whitelistChips');
+            container.innerHTML = '';
+            const q = filter.toLowerCase().trim();
+
+            const filtered = whitelist.filter(d => d.includes(q)).sort();
+
+            filtered.forEach(domain => {
+                const chip = document.createElement('div');
+                chip.className = 'whitelist-chip';
+                chip.innerHTML = `
+                    <span class="mono">${domain}</span>
+                    <span class="remove" onclick="event.stopImmediatePropagation(); removeDomain('${domain}')">×</span>
+                `;
+                container.appendChild(chip);
+            });
+
+            document.getElementById('whitelistCount').textContent = whitelist.length;
+        }
+
+        function filterWhitelist() {
+            const q = document.getElementById('whitelistSearch').value;
+            renderWhitelistChips(q);
+        }
+
+        function removeDomain(domain) {
+            if (confirm(`Remove ${domain} from whitelist?`)) {
+                whitelist = whitelist.filter(d => d !== domain);
+                saveWhitelist();
+                renderWhitelistChips(document.getElementById('whitelistSearch').value);
+            }
+        }
+
+        function addCustomDomain() {
+            const input = prompt('Enter domain to whitelist (e.g. myexchange.com):');
+            if (!input) return;
+            const clean = input.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+            if (!clean || clean.length < 4) {
+                alert('Invalid domain');
+                return;
+            }
+            if (whitelist.includes(clean)) {
+                alert('Domain already in whitelist');
+                return;
+            }
+            whitelist.push(clean);
+            whitelist.sort();
+            saveWhitelist();
+            renderWhitelistChips(document.getElementById('whitelistSearch').value);
+        }
+
+        // ==================== SAMPLES ====================
+        function loadSample(key) {
+            const textarea = document.getElementById('emailInput');
+            const fromInput = document.getElementById('fromInput');
+            textarea.value = SAMPLES[key] || '';
+            
+            // Auto fill From for samples
+            if (key === 'binancePhish') fromInput.value = 'support@binance-secure.net';
+            else if (key === 'fakeSupport') fromInput.value = 'binance-support@secure-binance.net';
+            else if (key === 'cryptoPrize') fromInput.value = 'rewards@crypto-giveaway.top';
+            else if (key === 'seedAttack') fromInput.value = 'security@wallet-recovery.net';
+            else if (key === 'legitEmail') fromInput.value = 'noreply@binance.com';
+            
+            // Auto scroll to input
+            textarea.focus();
+            textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function clearAll() {
+            document.getElementById('emailInput').value = '';
+            document.getElementById('fromInput').value = '';
+            document.getElementById('terminal').innerHTML = '';
+            document.getElementById('findings').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-shield-slash fs-1 opacity-50"></i>
+                    <p class="mb-0 mt-2 small">Scan results will appear here.</p>
+                </div>
+            `;
+            document.getElementById('scanStatus').textContent = 'READY';
+            document.getElementById('scanStatus').className = 'badge bg-dark text-muted border border-secondary small';
+        }
+
+        function copyReport() {
+            const terminalText = document.getElementById('terminal').innerText;
+            const findingsText = document.getElementById('findings').innerText;
+            const report = `CRYPTOGUARD REPORT\n${new Date().toLocaleString()}\n\n=== TERMINAL LOG ===\n${terminalText}\n\n=== FINDINGS ===\n${findingsText}`;
+            
+            navigator.clipboard.writeText(report).then(() => {
+                const origText = event.currentTarget ? event.currentTarget.innerHTML : '';
+                const btns = document.querySelectorAll('button');
+                // simple toast
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#00FF88;color:#080B14;padding:8px 20px;border-radius:4px;font-family:monospace;font-size:0.85rem;z-index:9999';
+                toast.textContent = 'Report copied to clipboard!';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2200);
+            }).catch(() => {
+                alert('Report ready. Select and copy manually if needed:\n\n' + report.substring(0, 800) + '...');
+            });
+        }
+
+        function showHowItWorks() {
+            const modalHTML = `
+                <div class="modal fade" id="howModal" tabindex="-1">
+                  <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content bg-dark text-white border-secondary">
+                      <div class="modal-header border-secondary">
+                        <h5 class="modal-title mono text-success">HOW CRYPTOGUARD WORKS — 6 LAYERS</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body">
+                        <ol class="small">
+                          <li><strong>Sender Verification</strong> — Extracts domain from From: header and compares with whitelist using Levenshtein distance. Spoof like binance-secure.net vs binance.com is caught even if visually similar.</li>
+                          <li><strong>URL Analysis</strong> — Extracts every link, parses domain, fuzzy-matches against whitelist. Shows exact character-level diff with red underline on the spoofed part.</li>
+                          <li><strong>Urgency Detection</strong> — 30+ regex patterns for classic pressure: "suspended within 24h", "frozen permanently", "act now".</li>
+                          <li><strong>Sensitive Data Request</strong> — Detects any mention of seed phrase, private key, 2FA code, password. Highest weight flag — almost always scam.</li>
+                          <li><strong>Social Engineering</strong> — Catches fake "Binance Security Team", prize giveaways, Telegram impersonation.</li>
+                          <li><strong>Crypto Targeting</strong> — Scores how much the email talks about your BTC/ETH/DeFi wallet/balance.</li>
+                        </ol>
+                        <p class="small text-muted mt-3 mb-0">All processing is 100% client-side. Nothing is sent anywhere. Add your own trusted domains in the whitelist manager.</p>
+                      </div>
+                      <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-success" data-bs-dismiss="modal">Got it — let's scan</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modal = new bootstrap.Modal(document.getElementById('howModal'));
+            modal.show();
+            document.getElementById('howModal').addEventListener('hidden.bs.modal', () => {
+                document.getElementById('howModal').remove();
+            });
+        }
+
+        // ==================== INIT ====================
+        function init() {
+            loadWhitelist();
+            document.getElementById('whitelistChips').addEventListener('click', (e) => {
+                // chips are already interactive via inline onclick
+            });
+
+            // Keyboard support: Ctrl/Cmd + Enter to scan
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    const active = document.activeElement;
+                    if (active.id === 'emailInput' || active.id === 'fromInput') {
+                        e.preventDefault();
+                        scanEmail();
+                    }
+                }
+            });
+
+            // Easter egg: type "scam" in terminal area focuses input
+            const term = document.getElementById('terminal');
+            term.addEventListener('click', () => {
+                if (term.innerHTML.trim() === '') {
+                    document.getElementById('emailInput').focus();
+                }
+            });
+
+            // Initial welcome in terminal
+            setTimeout(() => {
+                const t = document.getElementById('terminal');
+                if (t.innerHTML.trim() === '') {
+                    t.innerHTML = `<div class="terminal-line system">CRYPTOGUARD v1.0 ready. Load a sample or paste suspicious email then hit SCAN.</div>`;
+                }
+            }, 600);
+
+            // Show diagram hint
+            console.log('%c[CryptoGuard] Diagram available in artifacts/imagine_images/JwFB6.jpg', 'color:#00FF88');
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
