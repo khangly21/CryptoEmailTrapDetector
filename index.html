@@ -968,9 +968,20 @@ Binance Team`
             const btn = document.getElementById('piAuthBtn');
             const badge = document.getElementById('piUserBadge');
 
-            if (!window.Pi) {
-                console.warn('[Pi] SDK not loaded');
-                if (btn) btn.style.display = 'none';
+            //if (!window.Pi) {
+                //console.warn('[Pi] SDK not loaded');
+                //if (btn) btn.style.display = 'none';
+                //return;
+            //}
+            // Kiểm tra kỹ hơn
+            if (!window.Pi || typeof window.Pi.init !== 'function') {
+                console.warn('[Pi] Not running in Pi Browser environment');
+                
+                if (btn) {
+                    btn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Open in Pi Browser`;
+                    btn.disabled = true;
+                    btn.onclick = () => alert('This feature only works inside Pi Browser.');
+                }
                 return;
             }
 
