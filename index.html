@@ -967,36 +967,37 @@ Binance Team`
         async function initPiAuth() {
             const btn = document.getElementById('piAuthBtn');
             const badge = document.getElementById('piUserBadge');
-
-            //if (!window.Pi) {
-                //console.warn('[Pi] SDK not loaded');
-                //if (btn) btn.style.display = 'none';
-                //return;
-            //}
-            // Kiểm tra kỹ hơn
-            if (!window.Pi || typeof window.Pi.init !== 'function') {
-                console.warn('[Pi] Not running in Pi Browser environment');
-                
-                if (btn) {
-                    btn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Open in Pi Browser`;
-                    btn.disabled = true;
-                    btn.onclick = () => alert('This feature only works inside Pi Browser.');
-                }
+        
+            // Nếu không có Pi SDK thì xử lý ngay
+            if (!window.Pi) {
+                handleNonPiBrowser(btn);
                 return;
             }
-
+        
             try {
-                // 1. Await Pi.init fully before authenticate (as required)
+                // Thử khởi tạo Pi SDK
                 await Pi.init({ version: "2.0", sandbox: true });
-
-                // 2. Auto authenticate on load
+                
+                // Nếu init thành công thì mới authenticate
                 await authenticateWithPi(false);
-            } catch (e) {
-                console.error('[Pi] Init error', e);
+            } catch (err) {
+                console.warn('[Pi] Not running in Pi Browser or init failed:', err);
+                handleNonPiBrowser(btn);
             }
-
-            // Manual trigger
+        
+            // Gắn lại sự kiện cho nút (dự phòng)
             if (btn) btn.onclick = () => authenticateWithPi(true);
+        }
+        
+        // Hàm xử lý khi không ở trong Pi Browser
+        function handleNonPiBrowser(btn) {
+            if (btn) {
+                btn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Open in Pi Browser`;
+                btn.disabled = true;
+                btn.onclick = () => {
+                    alert('Pi Sign-in only works when you open this app inside the Pi Browser.');
+                };
+            }
         }
 
         async function authenticateWithPi(manual = false) {
