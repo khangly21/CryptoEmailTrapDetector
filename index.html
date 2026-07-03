@@ -1149,7 +1149,10 @@ Binance Team`
 
         async function buyProduct(productId) {
             let products = [];
-            try { products = JSON.parse(localStorage.getItem('cg_products') || '[]'); } catch(e){}
+            try { 
+                products = JSON.parse(localStorage.getItem('cg_products') || '[]'); 
+            } catch(e){}
+
             const product = products.find(p => p.id === productId);
             if (!product) return alert("Product not found");
 
@@ -1159,19 +1162,43 @@ Binance Team`
             }
 
             try {
-                await Pi.init({ version: "2.0", sandbox: true });
+                // QUAN TRỌNG: KHÔNG gọi Pi.init() lần nữa ở đây
+                // Nó đã được gọi trong initPiAuth() rồi
                 await Pi.createPayment({
                     amount: product.price,
                     memo: `Purchase: ${product.name}`,
-                    metadata: { productId: product.id, productName: product.name }
+                    metadata: { 
+                        productId: product.id, 
+                        productName: product.name 
+                    }
                 }, {
-                    onReadyForServerApproval: async (paymentId) => await approvePaymentOnServer(paymentId),
-                    onReadyForServerCompletion: async (paymentId, txid) => await completePaymentOnServer(paymentId, txid),
-                    onCancel: () => alert("Payment cancelled."),
-                    onError: (err) => alert("Payment error.")
+                    onReadyForServerApproval: async (paymentId) => {
+                        await approvePaymentOnServer(paymentId);
+                    },
+                    onReadyForServerCompletion: async (paymentId, txid) => {
+                        await completePaymentOnServer(paymentId, txid);
+                    },
+                    onIncompletePaymentFound: async (payment) => {
+                        console.log('[Pi] Incomplete payment found:', payment);
+                        if (payment && payment.identifier) {
+                            await completePaymentOnServer(
+                                payment.identifier, 
+                                payment.transaction?.txid || ''
+                            );
+                        }
+                    },
+                    onCancel: (paymentId) => {
+                        console.log('[Pi] Payment cancelled:', paymentId);
+                        alert("Payment was cancelled.");
+                    },
+                    onError: (error, payment) => {
+                        console.error('[Pi] Payment error:', error, payment);
+                        alert("Payment error: " + (error?.message || JSON.stringify(error)));
+                    }
                 });
             } catch (err) {
-                alert("Payment failed. Please use Pi Browser.");
+                console.error('[Pi] createPayment failed:', err);
+                alert("Payment failed: " + (err?.message || err));
             }
         }
 
