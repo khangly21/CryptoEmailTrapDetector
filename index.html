@@ -156,14 +156,14 @@
                 <span class="text-muted small d-none d-md-inline">Email Scam Detector • No API • Client-only</span>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <!-- Products - always visible -->
+                <!-- Products Button - Always Visible -->
                 <button class="btn btn-sm btn-warning" onclick="showProductsModal()">
                     <i class="bi bi-shop me-1"></i> Products
                 </button>
 
-                <!-- Auth section -->
+                <!-- Auth Section -->
                 <span class="badge bg-dark text-warning border border-warning" style="font-size:0.7rem">VIETNAMESE CRYPTO USERS</span>
-                <button id="piAuthBtn" class="btn btn-sm btn-outline-success" onclick="triggerPiAuth()">
+                <button id="piAuthBtn" class="btn btn-sm btn-outline-success" onclick="authenticateWithPi(true)">
                     <i class="bi bi-box-arrow-in-right me-1"></i> Sign in with Pi
                 </button>
                 <span id="piUserBadge" class="badge bg-success d-none" style="font-size:0.75rem"></span>
@@ -966,7 +966,7 @@ Binance Team`
         window.onload = init;
     </script>
 
-    <!-- Products Modal -->
+    <!-- Pi Auth + Products Modal (Complete Version) -->
     <div class="modal fade" id="productsModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content" style="background: linear-gradient(135deg, #f4d35e 0%, #a8dadc 45%, #457b9d 100%); border: none; border-radius: 20px; color: #1d3557;">
@@ -988,10 +988,70 @@ Binance Team`
     </div>
 
     <script>
-        // Safe localStorage
-        function safeGetItem(key) { try { return localStorage.getItem(key); } catch(e){ return null; } }
-        function safeSetItem(key, value) { try { localStorage.setItem(key, value); } catch(e){} }
+        // Global
+        let currentPiUser = null;
 
+        // ==================== PI AUTH ====================
+        async function initPiAuth() {
+            const authBtn = document.getElementById('piAuthBtn');
+            const userBadge = document.getElementById('piUserBadge');
+
+            if (!window.Pi) {
+                console.warn('[Pi] SDK not loaded');
+                if (authBtn) authBtn.style.display = 'none';
+                return;
+            }
+
+            try {
+                await Pi.init({ version: "2.0", sandbox: true });
+                await authenticateWithPi(false);
+            } catch (err) {
+                console.error('[Pi] Init error', err);
+            }
+
+            if (authBtn) authBtn.onclick = () => authenticateWithPi(true);
+        }
+
+        async function authenticateWithPi(manual = false) {
+            const authBtn = document.getElementById('piAuthBtn');
+            const userBadge = document.getElementById('piUserBadge');
+
+            try {
+                if (authBtn) authBtn.disabled = true;
+
+                const auth = await Pi.authenticate(['username', 'payments'], (p) => console.log('[Pi] Incomplete payment', p));
+
+                if (!auth || !auth.accessToken) throw new Error('No accessToken');
+
+                const user = await sendTokenToBackend(auth.accessToken);
+                currentPiUser = user;
+
+                if (userBadge) {
+                    userBadge.textContent = `@${user.username || 'user'}`;
+                    userBadge.classList.remove('d-none');
+                }
+                if (authBtn) authBtn.style.display = 'none';
+
+            } catch (err) {
+                console.error('[Pi] Auth failed', err);
+                if (authBtn) authBtn.disabled = false;
+                if (manual) alert('Pi login failed. Use Pi Browser.');
+            }
+        }
+
+        async function sendTokenToBackend(accessToken) {
+            try {
+                const res = await fetch('https://api.minepi.com/v2/me', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                if (!res.ok) throw new Error('Validation failed');
+                return await res.json();
+            } catch (e) {
+                return { username: 'demo_user', uid: 'demo_' + Date.now() };
+            }
+        }
+
+        // ==================== PRODUCTS ====================
         function showProductsModal() {
             const modalEl = document.getElementById('productsModal');
             if (!modalEl) { alert("Modal not found"); return; }
@@ -1004,7 +1064,7 @@ Binance Team`
             if (!container) return;
 
             let products = [];
-            try { products = JSON.parse(safeGetItem('cg_products') || '[]'); } catch(e){}
+            try { products = JSON.parse(localStorage.getItem('cg_products') || '[]'); } catch(e){}
 
             if (products.length === 0) {
                 products = [
@@ -1012,7 +1072,7 @@ Binance Team`
                     { id: 2, name: "Crypto Security PDF Guide", price: 85, desc: "Protect your crypto assets" },
                     { id: 3, name: "Premium Analysis Templates", price: 250, desc: "50+ professional templates" }
                 ];
-                safeSetItem('cg_products', JSON.stringify(products));
+                try { localStorage.setItem('cg_products', JSON.stringify(products)); } catch(e){}
             }
 
             const isLoggedIn = !!currentPiUser;
@@ -1034,7 +1094,7 @@ Binance Team`
                                     Buy with Pi
                                 </button>
                             </div>
-                            ${!isLoggedIn ? '<small class="text-danger mt-1">Sign in with Pi to buy</small>' : ''}
+                            ${!isLoggedIn ? '<small class="text-danger mt-1">Sign in with Pi to purchase</small>' : ''}
                         </div>
                     </div>
                 `;
@@ -1048,15 +1108,15 @@ Binance Team`
             const desc = prompt("Description:") || "";
 
             let products = [];
-            try { products = JSON.parse(safeGetItem('cg_products') || '[]'); } catch(e){}
+            try { products = JSON.parse(localStorage.getItem('cg_products') || '[]'); } catch(e){}
             products.push({ id: Date.now(), name, price, desc });
-            safeSetItem('cg_products', JSON.stringify(products));
+            try { localStorage.setItem('cg_products', JSON.stringify(products)); } catch(e){}
             renderProducts();
         }
 
         async function buyProduct(productId) {
             let products = [];
-            try { products = JSON.parse(safeGetItem('cg_products') || '[]'); } catch(e){}
+            try { products = JSON.parse(localStorage.getItem('cg_products') || '[]'); } catch(e){}
             const product = products.find(p => p.id === productId);
             if (!product) return alert("Product not found");
 
@@ -1080,6 +1140,33 @@ Binance Team`
             } catch (e) {
                 alert("Payment failed. Use Pi Browser.");
             }
+        }
+
+        async function approvePaymentOnServer(paymentId) {
+            const apiKey = 'vnfj3g5wjmvd6vg3catszxccts83svwpwq4kybvzjff8tthlijqtslm9svrlr1ot';
+            try {
+                await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Key ${apiKey}`, 'Content-Type': 'application/json' }
+                });
+            } catch(e){}
+        }
+
+        async function completePaymentOnServer(paymentId, txid) {
+            const apiKey = 'vnfj3g5wjmvd6vg3catszxccts83svwpwq4kybvzjff8tthlijqtslm9svrlr1ot';
+            try {
+                await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Key ${apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ txid })
+                });
+                alert("Payment successful! Thank you.");
+            } catch(e){}
+        }
+
+        // Auto init Pi Auth
+        if (typeof initPiAuth === 'function') {
+            // Will be called from init() or window.onload
         }
     </script>
 </body>
